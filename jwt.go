@@ -17,7 +17,7 @@ type JWTToken struct {
 	Password string
 }
 
-func CreateToken(scope string, username string, now time.Time) (string, *Error) {
+func CreateToken(scope string, username string, now time.Time, secure bool) (string, *Error) {
 	var access []map[string]interface{}
 
 	var checkScopeErr *Error
@@ -34,7 +34,7 @@ func CreateToken(scope string, username string, now time.Time) (string, *Error) 
 			} else {
 				repoName = "*"
 			}
-			if userRegistry != username {
+			if secure && userRegistry != username {
 				checkScopeErr = NewError(fmt.Sprintf("Forbidden repository namespace: %s/%s", userRegistry, repoName))
 			}
 
