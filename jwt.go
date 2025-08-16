@@ -6,11 +6,84 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func ParseJWT(tokenString string, jwtKey string) (*jwt.Claims, *Error) {
+type JWTToken struct {
+	Id       string
+	Password string
+}
+
+func CreateToken(scope string, username string, now time.Time) (string, *Error) {
+	var access []map[string]interface{}
+
+	var checkScopeErr *Error
+	var userRegistry, repoName string
+	if scope != "" {
+		scopeList := strings.Fields(scope)
+
+		for _, singleScope := range scopeList {
+			parts := strings.Split(singleScope, ":")
+			repoList := strings.Split(parts[1], "/")
+			userRegistry = repoList[0]
+			if len(repoList) > 1 {
+				repoName = repoList[1]
+			} else {
+				repoName = "*"
+			}
+			if userRegistry != username {
+				checkScopeErr = NewError(fmt.Sprintf("Forbidden repository namespace: %s/%s", userRegistry, repoName))
+			}
+
+			if len(parts) == 3 {
+				access = append(access, map[string]interface{}{
+					"type":    parts[0],
+					"name":    parts[1],
+					"actions": strings.Split(parts[2], ","),
+				})
+			}
+		}
+	} else {
+		access = append(access, map[string]interface{}{
+			"type":    TYPE,
+			"name":    username + "/*",
+			"actions": []string{"pull", "push"},
+		})
+	}
+	if checkScopeErr != nil {
+		return "warn", checkScopeErr
+	}
+
+	claims := jwt.MapClaims{
+		"iss":    TOKEN_ISSUER,
+		"sub":    username,
+		"aud":    AUD,
+		"exp":    now.Add(1 * time.Hour).Unix(),
+		"iat":    now.Unix(),
+		"nbf":    now.Unix(),
+		"access": access,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+	token.Header["kid"] = TOKEN_KID
+
+	privateKey, err := LoadEd25519PrivateKey(KEY_FILEPATH)
+	if err != nil {
+		return "", NewError(err.Error())
+	}
+
+	tokenString, signErr := token.SignedString(privateKey)
+	if signErr != nil {
+		return tokenString, NewError(signErr.Error())
+	}
+
+	return tokenString, nil
+}
+
+func ParseJWT(tokenString string, jwtKey string) (*JWTToken, *Error) {
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -27,7 +100,22 @@ func ParseJWT(tokenString string, jwtKey string) (*jwt.Claims, *Error) {
 		return nil, NewError("token is invalid")
 	}
 
-	return &token.Claims, nil
+	var id, password string
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		for key, val := range claims {
+			value := fmt.Sprintf("%s", val)
+			switch key {
+			case "id":
+				id = value
+			case "password":
+				password = value
+			}
+		}
+	} else {
+		return nil, NewError("failed to get token claims")
+	}
+
+	return &JWTToken{Id: id, Password: password}, nil
 }
 
 func LoadEd25519PrivateKey(keyFilePath string) (ed25519.PrivateKey, *Error) {
