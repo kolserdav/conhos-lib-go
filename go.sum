@@ -1,4 +1,2 @@
 github.com/golang-jwt/jwt/v5 v5.3.0 h1:pv4AsKCKKZuqlgs5sUmn4x8UlGa0kEVt/puTpKx9vvo=
 github.com/golang-jwt/jwt/v5 v5.3.0/go.mod h1:fxCRLWMO43lRc8nhHWY6LGqRcf+1gQWArsqaEUEa5bE=
-github.com/kolserdav/conhos-lib/pkg/lib v0.0.0-20250816092556-9a88c14a6a1b h1:D5v73tZENtVUNvQJt85QSAuknrhyA+RPmDYQX45F3I8=
-github.com/kolserdav/conhos-lib/pkg/lib v0.0.0-20250816092556-9a88c14a6a1b/go.mod h1:32nMhiBKqwS1WdNyEc+PcnvrHm/+PdxOx6EMw+G7mWI=

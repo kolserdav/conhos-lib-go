@@ -4,10 +4,9 @@ import (
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
-	conhoslib "github.com/kolserdav/conhos-lib/pkg/lib"
 )
 
-func ParseJWT(tokenString string, jwtKey string) (*jwt.Claims, *conhoslib.Error) {
+func ParseJWT(tokenString string, jwtKey string) (*jwt.Claims, *Error) {
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -17,11 +16,11 @@ func ParseJWT(tokenString string, jwtKey string) (*jwt.Claims, *conhoslib.Error)
 	})
 
 	if err != nil {
-		return nil, conhoslib.NewError(err.Error())
+		return nil, NewError(err.Error())
 	}
 
 	if !token.Valid {
-		return nil, conhoslib.NewError("token is invalid")
+		return nil, NewError("token is invalid")
 	}
 
 	return &token.Claims, nil
